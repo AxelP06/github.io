@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dagens Datum och Lokalt Väder</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+    html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        font-family: 'Poppins', sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: #ffffff;
+        transition: background-color 0.3s ease-in-out;
+    }
+    .container {
+        width: 100%;
+        max-width: 800px;
+        padding: 40px;
+        border-radius: 15px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        text-align: center;
+        background-color: rgba(255, 255, 255, 0.8);
+    }
+    h1 {
+        font-size: 2.5rem;
+        color: #2c3e50;
+        margin-bottom: 0.5em;
+    }
+    p {
+        font-size: 1.5rem;
+        color: #34495e;
+        margin-top: 0;
+    }
+    .weather {
+        font-size: 1.2rem;
+        color: #16a085;
+        margin-top: 20px;
+    }
+    .icon {
+        margin-right: 5px;
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <h1><i class="fa fa-calendar-check icon"></i>Dagens Datum och Väder</h1>
+    <p id="date"></p>
+    <p class="weather" id="weather"></p>
+</div>
+
+<script>
+function updateDate() {
+    const now = new Date();
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    const formattedDate = now.toLocaleDateString('sv-SE', options);
+    const weekNumber = getWeekNumber(now);
+
+    document.getElementById('date').innerHTML = `<i class="fa fa-calendar-day icon"></i>${formattedDate}, vecka ${weekNumber}`;
+}
+
+function getWeekNumber(d) {
+    d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+    const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+    return weekNo;
+}
+
+function fetchWeather(latitude, longitude) {
+    const apiKey = '6644996de8a03015883381yax186a2a'; // Byt ut mot din faktiska API-nyckel
+    const url = `https://api.weatherapi.com/v1/current.json?key=${apiKey}&q=${latitude},${longitude}&lang=sv`;
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+        const weather = `${data.current.condition.text}, ${data.current.temp_c}°C`;
+        document.getElementById('weather').innerHTML = `<i class="${getWeatherIcon(data.current.condition.code)} icon"></i>Väder: ${weather}`;
+        document.body.style.background = getBackground(data.current.is_day, data.current.condition.code);
+    } catch (error) {
+        console.error('Failed to fetch weather data:', error);
+        document.getElementById('weather').innerHTML = `<i class="fa fa-exclamation-circle icon"></i>Kunde inte hämta väderdata`;
+    }
+}
+
+function getLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((position) => {
+            fetchWeather(position.coords.latitude, position.coords.longitude);
+        }, (error) => {
+            console.error('Geolocation error:', error);
+            document.getElementById('weather').innerHTML = `<i class="fa fa-exclamation-circle icon"></i>Kunde inte hämta plats`;
+        });
+    } else {
+        document.getElementById('weather').innerHTML = `<i class="fa fa-exclamation-circle icon"></i>Geolocation är inte stödd av din webbläsare`;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    updateDate();
+    getLocation();
+    setInterval(updateDate, 1000 * 60); // Uppdatera varje minut
+});
+</script>
+</body>
+</html>
